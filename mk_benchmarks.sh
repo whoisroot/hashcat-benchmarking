@@ -5,9 +5,11 @@ output_dir="benchmarks"
 runs=5
 
 function print_usage() {
-	echo -e "\nUsage: $0 [-o output_dir] [-a] [-m mode] [-h] [-n num_benchmarks]"
-	echo -e "\tUse -a to run the full benchmark suite.\n\tOtherwise, just the default tests are run"
-	echo -e "\tThe default value for n is 5 runs."
+	echo -e "\nUsage: $0 [-o output_dir] [-a] [-m mode] [-h] [-n num_benchmarks] [-e \"--extra --hashcat --parameters\"]\n"
+	echo -e "\tUse -a to run the full benchmark suite. Otherwise, just the default tests are run."
+	echo -e "\tYou can pass extra options to hashcat (like -O or -w) using -e."
+	echo -e "\tExtra options should always be between quotes, as a single argument".
+	echo -e "\tThe default value for -n is 5 runs when not set."
 }
 
 while [[ "${1}" != "" ]]; do
@@ -29,6 +31,10 @@ while [[ "${1}" != "" ]]; do
 			;;
 		-n)
 			runs=$2
+			shift 1
+			;;
+		-e)
+			extras="$2"
 			shift 1
 			;;
 		*)
@@ -84,7 +90,7 @@ for i in $(seq -w ${runs}); do
 
 	outfile="${output_dir}/benchmark_$i"
 
-	hashcat ${benchmark} ${mode} --machine-readable | tee "${outfile}.txt"
+	hashcat ${benchmark} ${mode} --machine-readable ${extras} | tee "${outfile}.txt"
 	./parser.py "${outfile}.txt" "${outfile}.json"
 done
 
