@@ -2,10 +2,12 @@
 
 benchmark="--benchmark"
 output_dir="benchmarks"
+runs=5
 
 function print_usage() {
-	echo -e "\nUsage: $0 [-o output_dir] [-a] [-m mode]"
+	echo -e "\nUsage: $0 [-o output_dir] [-a] [-m mode] [-h] [-n num_benchmarks]"
 	echo -e "\tUse -a to run the full benchmark suite.\n\tOtherwise, just the default tests are run"
+	echo -e "\tThe default value for n is 5 runs."
 }
 
 while [[ "${1}" != "" ]]; do
@@ -21,6 +23,14 @@ while [[ "${1}" != "" ]]; do
 			mode="-m $2"
 			shift 1
 			;;
+		-h)
+			print_usage
+			exit 0
+			;;
+		-n)
+			runs=$2
+			shift 1
+			;;
 		*)
 			print_usage
 			exit 1
@@ -28,6 +38,19 @@ while [[ "${1}" != "" ]]; do
 	esac
 	shift 1
 done
+
+if [[ "${benchmark}" = "benchmarks" ]]; then
+	print_usage
+	echo -e "Continue?\n"
+	printf "Y/[N]: "
+	read answer
+
+	if [[ "${answer}" = "Y" || "${answer}" = "y" ]]; then
+		true
+	else
+		exit 0
+	fi
+fi
 
 if [[ -e "${output_dir}/benchmark_1.txt" ]]; then
 	echo -e "\nWARNING: Output directory \"${output_dir}\" already exists!"
@@ -49,10 +72,13 @@ fi
 
 start_time="$(date '+%F %T')"
 
-for i in {1..5}; do
-	echo -e "\n\t###############"
-	echo -e "\t# Benchmark $i #"
-	echo -e "\t###############\n"
+for i in $(seq -w ${runs}); do
+	echo -e -n "\n\t"
+	printf -- '#%.0s' $(seq -w $(( ${#runs} + 14 )))
+	echo -e "\n\t# Benchmark $i #"
+	echo -e -n "\t"
+	printf -- '#%.0s' $(seq -w $(( ${#runs} + 14 )))
+	echo -e "\n"
 	date '+%F %T'
 	echo
 
@@ -69,5 +95,6 @@ echo -e "# Start time: ${start_time} #\n# End time: ${end_time}   #"
 echo -e "###################################\n"
 
 echo "Merging hashcat benchmarks..."
-./merger.py -o "$output_dir/merged.json" "${output_dir}"/benchmark_{1..5}.json
+benchmarks="$(printf -- "\"${output_dir}/benchmark_%s.json\" " $(seq -w ${runs}))"
+bash -c "./merger.py -o \"$output_dir/merged.json\" ${benchmarks}"
 echo -e "\nTo compare results use\n./comparator.py [-o outfile.json] benchmark_a/merged.json benchmark_b/merged.json\n"
